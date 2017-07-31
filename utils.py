@@ -26,8 +26,28 @@ def convertToHtml(result, title):
     h = df.to_html(index=False)
     return h
 
+def getAllWindowsPid():
+    try:
+        screen = Wnck.Screen.get_default()
+        screen.force_update()
+        return [win.get_pid() for win in screen.get_windows()]
+    finally:
+        screen = None
+        Wnck.shutdown()
 
 class Window:
+    def __init__(self, pid):
+        self.pid = pid
+
+    def close(self):
+        print('close window: %s' % self.pid)
+        screen = Wnck.Screen.get_default()
+        screen.force_update()
+        for win in screen.get_windows():
+            if self.pid == win.get_pid():
+                win.close(1)
+        screen = None
+        Wnck.shutdown()
 
     def getAllWindows(self):
         try:
@@ -61,6 +81,18 @@ install_cmd = 'lastore-tools test -j install '
 remove_cmd = 'lastore-tools test -j remove '
 
 
+def getTrayIcons():
+    dbusDir = 'com.deepin.dde.TrayManager'
+    dbusObj = '/com/deepin/dde/TrayManager'
+    ifc = 'com.deepin.dde.TrayManager'
+    trayicons = 'TrayIcons'
+    session_bus = dbus.SessionBus()
+    session_obj = session_bus.get_object(dbusDir, dbusObj)
+    property_obj = dbus.Interface(session_obj, dbus_interface=dbus.PROPERTIES_IFACE)
+    dbus_array = property_obj.Get(ifc, trayicons)
+    icons = [str(icon) for icon in dbus_array]
+    return icons
+
 class Pkgs:
     def __init__(self, pkgname):
         self.pkgname = pkgname
@@ -74,6 +106,7 @@ class Pkgs:
 
     def getRpadebs(self):
         return getRpaDebPkgs()
+
 
     def dbusifc(self):
         dbusDir = 'com.deepin.lastore'
@@ -91,7 +124,7 @@ class Pkgs:
         return desktop_path
 
     def exec_name(self):
-        desktop_path = self.desktop_name(self.pkgname)
+        desktop_path = self.desktop_name()
         if desktop_path is None:
             return
         else:
@@ -127,7 +160,7 @@ class Pkgs:
         return s, o
 
     def run(self):
-        t = threading.Thread(target=lambda: getoutput(self.exec_name(self.pkgname)))
+        t = threading.Thread(target=lambda: getoutput(self.exec_name()))
         t.setDaemon(True)
         t.start()
 

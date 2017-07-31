@@ -13,8 +13,6 @@ install = 'lastore-tools test -j install '
 remove = 'lastore-tools test -j remove '
 
 
-window = Window()
-
 class PkgsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -40,13 +38,11 @@ class PkgsTest(unittest.TestCase):
         for infofile in infofiles:
             os.remove(infofile)
         '''
-        cls.defaultWins = window.getAllWindows()
+        cls.defaultWins = getAllWindowsPid()
         cls.rpadebs = RpaDebs()
         cls.pkgs = [Pkgs(pkg) for pkg in cls.rpadebs.debs]
-        #cls.oldversion = getDebPkgsVersion()
-        cls.oldversion = [pkg.version() for pkg in cls.pkgs]
-        cls.not_installed_debs = [pkg.pkgname for pkg in cls.pkgs if not pkg.isExisted()]
-        cls.installed_debs = [pkg.pkgname for pkg in cls.pkgs if pkg.isExisted()]
+        cls.not_installed_debs = [pkg for pkg in cls.pkgs if not pkg.isExisted()]
+        cls.installed_debs = [pkg for pkg in cls.pkgs if pkg.isExisted()]
         len_deb = len(cls.pkgs)
         try:
             with open('pkgs.info', 'w') as f:
@@ -66,6 +62,13 @@ class PkgsTest(unittest.TestCase):
         cls.newInstalledApps = []
         cls.newInstalledServices = []
         cls.local_pkgs = []
+        cls.install_passed = []
+        cls.install_failed = []
+        cls.opened_passed = []
+        cls.opened_failed = []
+        cls.remove_passed = []
+        cls.remove_failed = []
+        cls.trayicon = []
 
     @classmethod
     def tearDownClass(cls):
@@ -77,29 +80,21 @@ class PkgsTest(unittest.TestCase):
         open_status = [pkg.opened_status for pkg in cls.pkgs]
         remove_status = [pkg.removed_status for pkg in cls.pkgs]
         newversion = [pkg.version() for pkg in cls.pkgs]
-        result = [num, names, cls.oldversion, newversion, install_status, open_status, remove_status]
-        title = ['number', 'name', 'oldversion', 'newversion', 'install_status', 'open_status', 'remove_status']
+        rrversion = [cls.rpadebs.version(pkg.pkgname) for pkg in cls.pkgs]
+        result = [num, names,  newversion, rrversion, install_status, open_status, remove_status]
+        title = ['number', 'name', 'newversion', 'rrversion', 'install_status', 'open_status', 'remove_status']
         with open('result.html', 'w') as f:
             f.write(convertToHtml(result, title))
         f.close()
-        cls.wins = window.getAllWindows()
+        '''
+        cls.wins = getAllWindowsPid()
         if len(cls.wins) > len(cls.defaultWins):
             for win in cls.wins[len(cls.defaultWins):]:
-                win.close(1)
+                Window(win).close()
+        '''
 
         cls.newversion = getDebPkgsVersion()
-        try:
-            with open('pkgs.info', 'a') as f:
-                for pkg in cls.pkgs:
-                    f.write('\nAfter upgrade, %s  version: \t\t%s >> %s\n' % (
-                    pkg.pkgname, pkg.oldversion, pkg.newversion))
-                    print('\nAfter upgrade, %s  version: \t\t%s >> %s\n' % (
-                    pkg.pkgname, pkg.oldversion, pkg.newversion))
-        except Exception as e:
-            print(e)
-        finally:
-            f.close()
-
+    '''
     def setUp(self):
         self.defaultWins = window.getAllWindows()
 
@@ -108,6 +103,7 @@ class PkgsTest(unittest.TestCase):
         if len(self.wins) > len(self.defaultWins):
             for win in self.wins[len(self.defaultWins):]:
                 win.close(1)
+    '''
 
     @property
     def get_install_passed_pkgs(self):
@@ -120,6 +116,10 @@ class PkgsTest(unittest.TestCase):
     @property
     def get_newInstalledServices(self):
         return self.newInstalledServices
+
+    @property
+    def get_local_pkgs(self):
+        return self.local_pkgs
 
 
     # test 'sudo apt-get update'
@@ -148,6 +148,8 @@ class PkgsTest(unittest.TestCase):
     # test install
     def test_pkgs_install(self):
         print('\033[1;31m%s\033[0m' % 'test_pkgs_install')
+        for pkg in self.installed_debs:
+            pkg.installed_status = 'existed'
         len_pkgs = len(self.not_installed_debs)
         with open('pkgs.info', 'a') as f:
             f.write('test_pkgs_install\n')
@@ -157,28 +159,29 @@ class PkgsTest(unittest.TestCase):
                 print('The following %d pkg%s are not installed, and will be installed now:' % (
                 len_pkgs, len_pkgs > 1 and "s" or ""))
                 for pkg in self.not_installed_debs:
-                    f.write(pkg + '\n')
-                    print(pkg)
-                    s, o = so(install + pkg)
+                    f.write(pkg.pkgname + '\n')
+                    print(pkg.pkgname)
+                    s, o = pkg.install()
                     if s != 0:
-                        pkg.installed_status = 'successed'
-                        f.write('install ' + pkg + ' failed\n' + o + '\n')
+                        pkg.installed_status = 'failed'
+                        self.install_failed.append(pkg)
+                        f.write('install ' + pkg.pkgname + ' failed\n' + o + '\n')
                         f.write('-' * 100 + '\n')
-                        print('install ' + pkg + ' failed\n' + o + '\n')
+                        print('install ' + pkg.pkgname + ' failed\n' + o + '\n')
                         print('-' * 100 + '\n')
                     else:
-                        pkg.installed_status = 'failed'
-                        self.install_passed_pkgs.append(pkg)
-                        f.write('install ' + pkg + ' successfully\n')
+                        pkg.installed_status = 'successed'
+                        self.install_passed.append(pkg.pkgname)
+                        f.write('install ' + pkg.pkgname + ' successfully\n')
                         f.write('-' * 100 + '\n')
-                        print('install ' + pkg + ' successfully\n')
+                        print('install ' + pkg.pkgname + ' successfully\n')
                         print('-' * 100 + '\n')
                     try:
                         self.assertEqual(s, 0, '%s was installed failed' % pkg)
                     except Exception as e:
                         print(e)
             else:
-                f.write('All deb pkgs are installed\n')
+                f.write('All pkgs are installed\n')
                 f.write('-' * 100 + '\n')
                 print('All deb pkgs are installed')
                 print('-' * 100 + '\n')
@@ -190,16 +193,19 @@ class PkgsTest(unittest.TestCase):
         print('\033[1;31m%s\033[0m' % 'test_pkgs_version')
         with open('pkgs.info', 'a') as f:
             f.write('test_pkgs_version\n')
-
-            self.local_pkgs = [Pkgs(pkg) for pkg in self.installed_debs + self.install_passed_pkgs]
+            check_pkgs = [Pkgs(pkg) for pkg in self.installed_debs + self.install_passed]
+            for pkg in check_pkgs:
+                self.local_pkgs.append(pkg.pkgname)
             len_local_pkgs = len(self.local_pkgs)
             if len_local_pkgs > 0:
                 f.write('The following %d pkg%s version will be checked:\n' % (
                 len_local_pkgs, len_local_pkgs > 1 and "s" or ""))
                 pkgs = list(set(self.local_pkgs).intersection(set(self.rpadebs.debs)))
+                pkgs = [Pkgs(pkg) for pkg in pkgs]
                 for pkg in pkgs:
-                    local_version = Pkgs(pkg).version()
-                    rpa_version = self.rpadebs.version(pkg)
+                    local_version = pkg.version()
+                    rpa_version = self.rpadebs.version(pkg.pkgname)
+                    f.write('%s version: %s, and rr_verison is: %s\n' % (pkg, local_version, rpa_version))
                     try:
                         self.assertEqual(local_version, rpa_version,
                                          '%s is upgraded to %s now, not %s' % (pkg, local_version, rpa_version))
@@ -215,50 +221,76 @@ class PkgsTest(unittest.TestCase):
         f.close()
 
     def test_pkgs_open(self):
-        if app.exec_str is not None:
-            run_app(app)
-            if app.pkg_name in need_passwd_apps:
-                sleep(2)
-                pyautogui.typewrite(sys.argv[1], interval=1)
-                pyautogui.press('enter')
-                sleep(1)
-            wait = 30
-            while wait != 0:
-                sleep(1)
-                wait = wait - 1
-                newWindows = getAllWindowsPid()
-                if len(newWindows) > len(defaultWindows):
-                    app.opened_status = 'passed'
-                    print(defaultWindows)
-                    print(newWindows)
-                    self.opened_passed.append(app.pkg_name)
-                    print('opened %s passed\n' % app.pkg_name)
-                    WindowsPid = list(set(newWindows).symmetric_difference(set(defaultWindows)))
-                    print(WindowsPid)
-                    for winpid in WindowsPid:
-                        Window(winpid).close()
-                    break
+        print('\033[1;31m%s\033[0m' % 'test_pkgs_open')
+        with open('pkgs.info', 'a') as f:
+            f.write('test_pkgs_open\n')
+            print([pkg.pkgname for pkg in self.local_pkgs])
+            len_local_pkgs = len(self.local_pkgs)
+            if len_local_pkgs > 0:
+                f.write('The following %d pkg%s version will be checked:\n' % (
+                    len_local_pkgs, len_local_pkgs > 1 and "s" or ""))
+                local_pkgs = [pkg for pkg in self.local_pkgs if pkg.exec_name() is not None]
+                for pkg in local_pkgs:
+                    defaultWindows = getAllWindowsPid()
+                    defaulttrayicons = getTrayIcons()
+
+                    pkg.run()
+                    wait = 30
+                    while wait != 0:
+                        sleep(1)
+                        wait = wait - 1
+                        newWindows = getAllWindowsPid()
+                        try:
+                            self.assertGreater(len(newWindows), len(defaultWindows),
+                                           '%s was not opened successfully in tray' % pkg.pkgname)
+                        except Exception as e:
+                            print(e)
+                        if len(newWindows) > len(defaultWindows):
+                            pkg.opened_status = 'passed'
+                            self.opened_passed.append(pkg)
+                            print('opened %s passed\n' % pkg.pkgname)
+                            externalWindows = list(set(newWindows).symmetric_difference(set(defaultWindows)))
+                            for wins in externalWindows:
+                                Window(wins).close()
+
+                            break
+                    else:
+                        newtrayicons = getTrayIcons()
+                        try:
+                            self.assertGreater(len(newtrayicons), len(defaulttrayicons),
+                                           '%s was not opened successfully in tray' % pkg.pkgname)
+                        except Exception as e:
+                            print(e)
+                        if len(newtrayicons) > len(defaulttrayicons):
+                            trayicons = list(set(newtrayicons).symmetric_difference(set(defaulttrayicons)))
+                            print(trayicons)
+                            self.trayicon.append(pkg.pkgname)
+                            print('opened %s passed\n' % pkg.pkgname)
+                            pkg.opened_status = 'passed'
+                            self.opened_passed.append(pkg.pkgname)
+                        else:
+                            pkg.opened_status = 'failed'
+                            print([default.get_name() for default in defaultWindows])
+                            print(window.getAllWindowsName())
+                            self.opened_failed.append(pkg.pkgname)
+                            f.write('[%s] run [%s] open failed ' % (pkg.pkgname, pkg.exec_name()))
+                            print('opened %s failed\n' % pkg.pkgname)
+
             else:
-                newtrayicons = getTrayIcons()
-                if len(newtrayicons) > len(defaulttrayicons):
-                    trayicons = list(set(newtrayicons).symmetric_difference(set(defaulttrayicons)))
-                    print(trayicons)
-                    self.trayicon.append(app.pkg_name)
-                    print('opened %s passed\n' % app.pkg_name)
-                    app.opened_status = 'passed'
-                    self.opened_passed.append(app.pkg_name)
-                else:
-                    app.opened_status = 'failed'
-                    print(defaultWindows)
-                    print(getAllWindowsPid())
-                    self.opened_failed.append(app.pkg_name)
-                    f.write('[%s] run [%s] open failed ' % (app.pkg_name, get_desktop_exec(app.pkg_name)))
-                    print('opened %s failed\n' % app.pkg_name)
+                f.write('No pkg is to be opened\n')
+                f.write('-' * 100 + '\n')
+                print('\033[1;31m%s\033[0m' % 'No pkg to be opened')
+                print('-' * 100 + '\n')
+            f.write('-' * 100 + '\n')
+            print('-' * 100 + '\n')
+        f.close()
 
     # test remove pkgs with cmd
     def test_pkgs_remove(self):
         print('\033[1;31m%s\033[0m' % 'test_pkgs_remove')
-        len_pkgs = len(self.install_passed_pkgs)
+        for pkg in self.installed_debs:
+            pkg.removed_status = 'default, do not remove'
+        len_pkgs = len(self.install_passed)
         with open('pkgs.info', 'a') as f:
             f.write('test_pkgs_remove\n')
             if len_pkgs > 0:
@@ -266,22 +298,23 @@ class PkgsTest(unittest.TestCase):
                     len_pkgs, len_pkgs > 1 and "s" or ""))
                 print('The following %d pkg%s will be removed now:' % (
                     len_pkgs, len_pkgs > 1 and "s" or ""))
-                for pkg in self.install_passed_pkgs:
-                    f.write(pkg + '\n')
-                    print(pkg)
-                    s, o = so(remove + pkg)
+                for pkg in self.install_passed:
+                    f.write(pkg.pkgname + '\n')
+                    print(pkg.pkgname)
+                    s, o = pkg.remove()
                     if s != 0:
                         pkg.removed_status = 'failed'
-                        f.write('removed ' + pkg + ' failed\n' + o + '\n')
+                        self.remove_failed.append(pkg.pkgname)
+                        f.write('removed ' + pkg.pkgname + ' failed\n' + o + '\n')
                         f.write('-' * 100 + '\n')
-                        print('removed ' + pkg + ' failed\n' + o + '\n')
+                        print('removed ' + pkg.pkgname + ' failed\n' + o + '\n')
                         print('-' * 100 + '\n')
                     else:
                         pkg.removed_status = 'successed'
-                        self.install_passed_pkgs.append(pkg)
-                        f.write('removed ' + pkg + ' successfully\n')
+                        self.remove_passed.append(pkg.pkgname)
+                        f.write('removed ' + pkg.pkgname + ' successfully\n')
                         f.write('-' * 100 + '\n')
-                        print('removed ' + pkg + ' successfully\n')
+                        print('removed ' + pkg.pkgname + ' successfully\n')
                         print('-' * 100 + '\n')
                     try:
                         self.assertEqual(s, 0, '%s was removed failed' % pkg)
@@ -299,12 +332,11 @@ class PkgsTest(unittest.TestCase):
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(PkgsTest('test_update'))
+    #suite.addTest(PkgsTest('test_update'))
     suite.addTest(PkgsTest('test_pkgs_install'))
     suite.addTest(PkgsTest('test_pkgs_version'))
+    suite.addTest(PkgsTest('test_pkgs_open'))
     suite.addTest(PkgsTest('test_pkgs_remove'))
-    #suite.addTest(PkgsTest('test_app_open'))
-    #suite.addTest(PkgsTest('test_app_uninstall'))
     return suite
 
 
