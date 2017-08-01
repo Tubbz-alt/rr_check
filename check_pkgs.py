@@ -87,8 +87,8 @@ class PkgsTest(unittest.TestCase):
         oldversion = [pkg.version() for pkg in cls.pkgs]
         newversion = [pkg.newversion for pkg in cls.pkgs]
         rrversion = [cls.rpadebs.version(pkg.pkgname) for pkg in cls.pkgs]
-        result = [num, names,  oldversion, newversion, rrversion, install_status, open_status, remove_status]
-        title = ['number', 'name', 'oldversion', 'newversion', 'rrversion', 'install_status', 'open_status', 'remove_status']
+        result = [num, names,  newversion, rrversion, install_status, open_status, remove_status]
+        title = ['number', 'name', 'newversion', 'rrversion', 'install_status', 'open_status', 'remove_status']
         with open('result.html', 'w') as f:
             f.write(convertToHtml(result, title))
         f.close()
