@@ -26,6 +26,7 @@ def convertToHtml(result, title):
     h = df.to_html(index=False)
     return h
 
+
 def getAllWindowsPid():
     try:
         screen = Wnck.Screen.get_default()
@@ -34,6 +35,7 @@ def getAllWindowsPid():
     finally:
         screen = None
         Wnck.shutdown()
+
 
 class Window:
     def __init__(self, pid):
@@ -77,8 +79,8 @@ class Window:
             Wnck.shutdown()
 
 
-install_cmd = 'lastore-tools test -j install '
-remove_cmd = 'lastore-tools test -j remove '
+install_cmd = 'sudo DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y install '
+remove_cmd = 'sudo DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y install '
 
 
 def getTrayIcons():
@@ -93,6 +95,13 @@ def getTrayIcons():
     icons = [str(icon) for icon in dbus_array]
     return icons
 
+
+def getpids():
+    pscmd = 'ps -eo pid --no-headers'
+    pids = getoutput(pscmd).split('\n')
+    return pids
+
+
 class Pkgs:
     def __init__(self, pkgname):
         self.pkgname = pkgname
@@ -106,7 +115,6 @@ class Pkgs:
 
     def getRpadebs(self):
         return getRpaDebPkgs()
-
 
     def dbusifc(self):
         dbusDir = 'com.deepin.lastore'
@@ -138,7 +146,7 @@ class Pkgs:
 
     def version(self):
         if self.isExisted():
-            return getoutput("dpkg -s " + self.pkgname + " |grep Version |awk '{print $2}'")
+            return getoutput("apt-cache policy " + self.pkgname + " |grep Installed |awk '{print $2}'")
         else:
             return 'not installed'
 
@@ -164,8 +172,13 @@ class Pkgs:
         t.setDaemon(True)
         t.start()
 
+    def killps(self, pid):
+        print('kill %s' % pid)
+        getoutput('sudo kill -9 %s' % pid)
+
+
 if __name__ == '__main__':
     rpadebs = RpaDebs()
     pkgs = [Pkgs(pkg) for pkg in rpadebs.debs]
     for pkg in pkgs:
-        print(pkg.pkgname,pkg.version())
+        print(pkg.pkgname, pkg.version())
