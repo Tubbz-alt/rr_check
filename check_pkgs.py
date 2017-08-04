@@ -46,15 +46,30 @@ class PkgsTest(unittest.TestCase):
         cls.installed_debs = [pkg for pkg in cls.pkgs if pkg.isExisted()]
         cls.installed_debs_name = [pkg.pkgname for pkg in cls.pkgs if pkg.isExisted()]
         len_deb = len(cls.pkgs)
+        len_installed = len(cls.installed_debs)
+        len_not_installed = len(cls.not_installed_debs)
         try:
             with open('pkgs.info', 'w') as f:
-                print('The following %d deb pkg%s will be checked:\n' % (len_deb, len_deb > 1 and "s" or ""))
-                f.write('The following %d deb pkg%s will be checked:\n' % (len_deb, len_deb > 1 and "s" or ""))
-                for deb in cls.pkgs:
-                    print('%s\n' % deb.pkgname)
-                    f.write('%s\n' % deb.pkgname)
+                print('The following %d pkg%s will be checked:\n' % (len_deb, len_deb > 1 and "s" or ""))
+                print('\n'.join(pkg.pkgname for pkg in cls.pkgs))
                 print('-' * 50 + '\n')
-                f.write('-' * 50 + '\n')
+                f.write('The following %d pkg%s will be checked:\n' % (len_deb, len_deb > 1 and "s" or ""))
+                f.write('\n'.join(pkg.pkgname for pkg in cls.pkgs))
+                f.write('\n' + '-' * 50 + '\n')
+                if len_installed > 0:
+                    print('The following %d pkg%s installed:\n' % (len_installed, len_installed > 1 and "s" or ""))
+                    print('\n'.join(pkg.pkgname for pkg in cls.installed_debs))
+                    print('-' * 50 + '\n')
+                    f.write('The following %d pkg%s installed:\n' % (len_installed, len_installed > 1 and "s" or ""))
+                    f.write('\n'.join(pkg.pkgname for pkg in cls.installed_debs))
+                    f.write('\n' + '-' * 50 + '\n')
+                if len_not_installed > 0:
+                    print('The following %d pkg%s not installed:\n' % (len_not_installed, len_not_installed > 1 and "s" or ""))
+                    print('\n'.join(pkg.pkgname for pkg in cls.not_installed_debs))
+                    print('-' * 50 + '\n')
+                    f.write('The following %d pkg%s not installed:\n' % (len_not_installed, len_not_installed > 1 and "s" or ""))
+                    f.write('\n'.join(pkg.pkgname for pkg in cls.not_installed_debs))
+                    f.write('\n' + '-' * 50 + '\n')
         except Exception as e:
             print(e)
         finally:
@@ -235,9 +250,12 @@ class PkgsTest(unittest.TestCase):
             f.write('The following %d pkg%s version will be checked:\n' % (
                 len_local_pkgs, len_local_pkgs > 1 and "s" or ""))
             for pkg in self.pkgs:
+                '''
                 if pkg not in self.local_pkgs:
                     pkg.newversion = 'not installed'
-                pkg.newversion = pkg.version()
+                '''
+                #pkg.newversion = pkg.version()
+                pkg.newversion = getoutput("apt-cache policy " + pkg.pkgname + " |grep Installed |awk '{print $2}'")
                 rpa_version = self.rpadebs.version(pkg.pkgname)
                 f.write('%s version: %s, and rr_verison is: %s\n' % (pkg.pkgname, pkg.newversion, rpa_version))
                 print('%s version: %s, and rr_verison is: %s\n' % (pkg.pkgname, pkg.newversion, rpa_version))
