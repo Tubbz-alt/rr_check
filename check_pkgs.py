@@ -39,6 +39,9 @@ class PkgsTest(unittest.TestCase):
         for infofile in infofiles:
             os.remove(infofile)
         '''
+        unuseless_lists = glob('/etc/apt/sources.list.d/*.list')
+        if len(unuseless_lists) > 0:
+            subprocess.check_call('sudo rm /etc/apt/sources.list.d/*.list')
         cls.defaultWins = getAllWindowsPid()
         cls.rpadebs = RpaDebs()
         cls.pkgs = [Pkgs(pkg) for pkg in cls.rpadebs.debs]
@@ -255,7 +258,7 @@ class PkgsTest(unittest.TestCase):
                     pkg.newversion = 'not installed'
                 '''
                 #pkg.newversion = pkg.version()
-                pkg.newversion = getoutput("apt-cache policy " + pkg.pkgname + " |grep Installed |awk '{print $2}'")
+                pkg.newversion = getoutput("apt-cache show " + pkg.pkgname + " |grep Version |head -1 |awk '{print $2}'")
                 rpa_version = self.rpadebs.version(pkg.pkgname)
                 f.write('%s version: %s, and rr_verison is: %s\n' % (pkg.pkgname, pkg.newversion, rpa_version))
                 print('%s version: %s, and rr_verison is: %s\n' % (pkg.pkgname, pkg.newversion, rpa_version))
