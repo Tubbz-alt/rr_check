@@ -14,6 +14,7 @@ install = 'lastore-tools test -j install '
 remove = 'lastore-tools test -j remove '
 
 
+
 class PkgsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -260,7 +261,8 @@ class PkgsTest(unittest.TestCase):
                 #pkg.newversion = pkg.version()
                 pkg.newversion = getoutput("apt-cache show " + pkg.pkgname + " |grep Version |head -1 |awk '{print $2}'")
                 rpa_version = self.rpadebs.version(pkg.pkgname)
-                f.write('%s version: %s, and rr_verison is: %s\n' % (pkg.pkgname, pkg.newversion, rpa_version))
+		if pkg.newversion != rpa_version:
+                	f.write('%s version: %s, but rr_verison is: %s\n' % (pkg.pkgname, pkg.newversion, rpa_version))
                 print('%s version: %s, and rr_verison is: %s\n' % (pkg.pkgname, pkg.newversion, rpa_version))
                 try:
                     self.assertEqual(pkg.newversion, rpa_version,
