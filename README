@@ -1,15 +1,8 @@
 #prepare envioronment:
-1.sudo bash nopasswd.sh your_user_name
-2.If you want to check task [https://rr.deepin.io/#/review/303](https://rr.deepin.io/#/review/303), just replace 303 in ** rpa.info **: ` id = 303 `
-3.bash ready_env.sh 
+1.If you want to check task [https://rr.deepin.io/#/review/303](https://rr.deepin.io/#/review/303), just replace 303 in ** rpa.info **: ` id = 303 `
 
-
-
-#run script:
-1.cd rr_check
-2.python3 check_pkgs.py
-
+2.bash ready_env.sh
 
 #check result
-会生成result.html文件方便查看版本，安装，打开，删除状态
+在rr_check目录会生成result.html文件方便查看版本，安装，打开，删除状态
 pkgs.info会输出具体的失败信息
