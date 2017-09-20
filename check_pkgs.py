@@ -5,6 +5,7 @@ import os
 import unittest
 from glob import glob
 from utils import *
+import subprocess
 
 
 homePath = os.path.expanduser('~')
@@ -42,7 +43,8 @@ class PkgsTest(unittest.TestCase):
 		'''
 		unuseless_lists = glob('/etc/apt/sources.list.d/*.list')
 		if len(unuseless_lists) > 0:
-			subprocess.check_call('sudo rm /etc/apt/sources.list.d/*.list')
+			subprocess.check_call('sudo rm /etc/apt/sources.list.d/*.list', shell=True)
+
 		cls.defaultWins = getAllWindowsPid()
 		cls.rpadebs = RpaDebs()
 		cls.pkgs = [Pkgs(pkg) for pkg in cls.rpadebs.debs]
