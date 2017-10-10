@@ -138,7 +138,7 @@ class Pkgs:
         else:
             o = getoutput('cat ' + desktop_path.replace(' ', '\ ') + '|grep Exec= |head -1')
             start = o.find('=') + 1
-            end = o.rfind('%') - 1 if o.find('%') != -1 else len(o)
+            end = o.rfind('%') - 1 if o.find('%') != -1 and o[-1] != '"' else len(o)
             return o[start:end]
 
     def isExisted(self):
