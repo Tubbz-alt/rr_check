@@ -15,7 +15,7 @@ bash ready_env.sh
 python3 check_pkgs.py
 ```
 
-做了步骤2和3后，以后就只需要改动rpa.info的id，然后执行python3 check_pkgs.py 就行了
+准备好测试环境和安装完所有依赖后，以后就只需要改动rpa.info的id，然后执行python3 check_pkgs.py 就行了
 
 # check result
 在rr_check目录会生成`result.html`文件方便查看版本，安装，打开，删除状态
