@@ -11,8 +11,6 @@ import subprocess
 homePath = os.path.expanduser('~')
 update = 'sudo apt-get update'
 upgrade = 'sudo DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y dist-upgrade'
-install = 'lastore-tools test -j install '
-remove = 'lastore-tools test -j remove '
 
 
 
@@ -371,7 +369,7 @@ class PkgsTest(unittest.TestCase):
 						self.remove_passed.append(pkg.pkgname)
 						f.write('removed ' + pkg.pkgname + ' successfully\n')
 						f.write('-' * 100 + '\n')
-						print('removed ' + pkg.pkgname + ' successfully\n')
+						print('removed ' + pkg.pkgname + ' successfully\n' + o + '\n')
 						print('-' * 100 + '\n')
 					try:
 						self.assertEqual(s, 0, '%s was removed failed' % pkg)
